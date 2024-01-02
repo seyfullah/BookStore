@@ -15,7 +15,7 @@ public class BookItem
     /// <summary>
     /// Date of publication.
     /// </summary>
-    public DateTime PublishedDate { get; set; }
+    public DateTime PublishDate { get; set; }
     /// <summary>
     /// Price
     /// </summary>

@@ -1,5 +1,5 @@
 public class BookItemPriceUpdating
 {
-    public int BookId { get; internal set; }
-    public decimal Price { get; internal set; }
+    public int BookId { get; set; }
+    public decimal Price { get; set; }
 }

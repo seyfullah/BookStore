@@ -6,6 +6,7 @@ namespace BookStore.Controllers;
 
 [ApiController]
 [Route("[controller]")]
+[Produces("application/json")]
 public class BooksController : ControllerBase
 {
     private readonly ILogger<BooksController> _logger;
@@ -47,11 +48,11 @@ public class BooksController : ControllerBase
     ///        "Title": "Software Development",
     ///        "Author": "Mehmet Usta",
     ///        "ISBN": "12983487"
-    ///        "PublishedDate": "2023-01-02"
+    ///        "PublishDate": "2023-01-02"
     ///     }
     ///
     /// </remarks>
-    /// <response code="201">Returns the newly created item</response>
+    /// <response code="201">Returns as successful</response>
     /// <response code="400">If the item is null</response>
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
@@ -63,12 +64,12 @@ public class BooksController : ControllerBase
             Title = bookItemAdding.Title,
             Author = bookItemAdding.Author,
             ISBN = bookItemAdding.ISBN,
-            PublishedDate = bookItemAdding.PublishedDate,
-        }
+            PublishDate = bookItemAdding.PublishDate,
+        };
         _context.Books.Add(book);
         await _context.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(Add), null);
+        return CreatedAtAction(nameof(Create), null);
     }
 
     /// <summary>
@@ -76,6 +77,18 @@ public class BooksController : ControllerBase
     /// Updates the price of a specific book. 
     /// This should add a new record to BookPrices and update the EndDate of the previous record if necessary.
     /// </summary>
+    /// <param name="bookId"/>
+    /// <param name="bookItemPriceUpdating"/>
+    /// <remarks>
+    /// Sample request:
+    ///
+    ///     PUT /books
+    ///     {
+    ///         "BookId": 1,
+    ///         "Price" : 33
+    ///     }
+    ///
+    /// </remarks>
     /// <returns></returns>
     [HttpPut("{bookId}/price")]
     public async Task<IActionResult> UpdatePrice(int bookId, BookItemPriceUpdating bookItemPriceUpdating)
@@ -90,15 +103,19 @@ public class BooksController : ControllerBase
         {
             return NotFound();
         }
-
-        var bookPrice = await _context.BookPrices
-            .Where(entity => entity.BookID == bookId && entity.EndDate == null)
-            .FirstOrDefaultAsync();
+        var bookWithPrices = await _context.Books
+                            .Where(b => b.BookID == bookId)
+                            .Include(b => b.BookPrices)
+                            .FirstOrDefaultAsync();
+        if (bookWithPrices == null || bookWithPrices.BookPrices == null)
+        {
+            return NotFound();
+        }
+        var bookPrice = bookWithPrices.BookPrices.FirstOrDefault(p => p.EndDate == null);
         if (bookPrice == null)
         {
             return NotFound();
         }
-
         bookPrice.EndDate = DateTime.Now;
 
         var newPrice = new BooksPrices
@@ -125,12 +142,13 @@ public class BooksController : ControllerBase
     /// Get Historical Prices of a Specific Book
     /// Returns all historical prices of a specific book.
     /// </summary>
-    /// <param name="bookId">
+    /// <param name="bookId"/>
     /// <returns></returns>
     [HttpGet("{bookId}/prices")]
     public async Task<ActionResult<IEnumerable<HistoricalPrices>>> GetHistoricalPrices(int bookId)
     {
-        var historicalPrices = await _context.BookPrices.Select(x => BookPricesToDTO(x)).ToListAsync();
+        var historicalPrices = await _context.BookPrices.Where(p => p.BookID == bookId)
+            .Select(x => BookPricesToDTO(x)).ToListAsync();
         if (historicalPrices == null)
         {
             return NotFound();
@@ -143,31 +161,44 @@ public class BooksController : ControllerBase
     /// Receives a list of sales records (each record containing a sale date and quantity) 
     /// and calculates the total revenue generated for the specified
     /// </summary>
+    /// <param name="bookId"/>
+    /// <param name="calculateRevenueItems"/>
+    /// <remarks>
+    /// Sample request:
+    ///
+    ///     POST /{bookId}/prices
+    ///     [
+    ///     {
+    ///        "Date": "2023-01-01",
+    ///        "Count": 1
+    ///     },
+    ///     {
+    ///        "Date": "2023-02-01",
+    ///        "Count": 2
+    ///     }
+    ///     ]
+    ///
+    /// </remarks>
     /// <returns></returns>
-    [HttpPost(Name = "{bookId}/revenue")]
-    public async Task<ActionResult<decimal>> CalculateRevenueForABook(int bookId, Dictionary<DateTime, int> calculateRevenue)
+    [HttpPost("{bookId}/revenue")]
+    public async Task<ActionResult<decimal>> CalculateRevenueForABook(int bookId, CalculateRevenueItem[] calculateRevenueItems)
     {
-        var historicalPrices = await _context.BookPrices.ToListAsync();
+        var historicalPrices = await _context.BookPrices.Where(p => p.BookID == bookId).ToListAsync();
         if (historicalPrices == null)
         {
             return NotFound();
         }
         var totalRevenue = 0m;
-        foreach (var item in calculateRevenue)
+        foreach (var item in calculateRevenueItems)
         {
-            var price = historicalPrices.FirstOrDefault(p => item.Key <= p.EffectiveDate);
+            var price = historicalPrices.FirstOrDefault(p => item.Date <= p.EffectiveDate);
             if (price == null)
             {
                 continue;
             }
-            totalRevenue += price.Price * item.Value;
+            totalRevenue += price.Price * item.Count;
         }
         return Ok(totalRevenue);
-    }
-
-    private bool BookPricesExists(int priceId)
-    {
-        return _context.BookPrices.Any(e => e.PriceID == priceId);
     }
 
     private static BookItem ItemToDTO(Books book) =>
@@ -177,7 +208,7 @@ public class BooksController : ControllerBase
            Author = book.Author,
            ISBN = book.ISBN,
            //    Price = book.Price,
-           PublishedDate = book.PublishedDate
+           PublishDate = book.PublishDate
        };
 
     private static HistoricalPrices BookPricesToDTO(BooksPrices booksPrice) =>
@@ -188,4 +219,3 @@ public class BooksController : ControllerBase
             EndDate = booksPrice.EndDate
         };
 }
-

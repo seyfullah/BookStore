@@ -21,5 +21,5 @@ public class BookItemAdding
     /// Date of publication.
     /// </summary>
     [Required]
-    public DateTime PublishedDate { get; set; }
+    public DateTime PublishDate { get; set; }
 }

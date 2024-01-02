@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 /// <summary>
 /// Books
 /// </summary>
@@ -6,6 +8,7 @@ public class Books
     /// <summary>
     /// Unique identifier for each book.
     /// </summary>
+    [Key]
     public int BookID { get; set; }
     /// <summary>
     /// Title of the book.
@@ -22,7 +25,7 @@ public class Books
     /// <summary>
     /// Date of publication.
     /// </summary>
-    public DateTime PublishedDate { get; set; }
+    public DateTime PublishDate { get; set; }
     /// <summary>
     /// Book Prices
     /// </summary>
