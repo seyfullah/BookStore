@@ -23,4 +23,8 @@ public class Books
     /// Date of publication.
     /// </summary>
     public DateTime PublishedDate { get; set; }
+    /// <summary>
+    /// Book Prices
+    /// </summary>
+    public ICollection<BooksPrices>? BookPrices { get; set; }
 }

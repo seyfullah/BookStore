@@ -11,6 +11,6 @@ public class BooksContext : DbContext
 
     public DbSet<Books> Books { get; set; } = null!;
 
-    public DbSet<Books> BookPrices { get; set; } = null!;
+    public DbSet<BooksPrices> BookPrices { get; set; } = null!;
 
 }

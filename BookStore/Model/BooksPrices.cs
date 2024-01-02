@@ -10,7 +10,7 @@ public class BooksPrices
     /// <summary>
     /// References BookID in the Books table.
     /// </summary>
-    public string? BookID { get; set; }
+    public int BookID { get; set; }
     /// <summary>
     /// The price of the book.
     /// </summary>
@@ -22,5 +22,5 @@ public class BooksPrices
     /// <summary>
     /// The date when this price is no longer effective. Can be NULL if the price is still current.
     /// </summary>
-    public DateTime EndDate { get; set; }
+    public DateTime? EndDate { get; set; }
 }
